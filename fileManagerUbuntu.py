@@ -2,14 +2,14 @@ import os.path
 import sys
 import os, re
 import hashlib
-sys.path.append('printResult\prettytable-0.7.2')
+sys.path.insert(0,'printResult/prettytable-0.7.2')
 from prettytable import PrettyTable
 from os.path import join, getsize
 from collections import defaultdict
 from collections import Counter
 from shutil import copyfile
 from shutil import move
-clear = lambda: os.system('cls')
+clear = lambda: os.system('clear')
 fileNameSize = defaultdict(list)
 global scaned
 scaned = 0
@@ -21,25 +21,15 @@ logHistory = []
 ######################################################################
 def scanAll():
     try:
-        print(r"SCANING SYSTEM...")
-        for root, dirs, files in os.walk(r"C:\Users"):
-            if "AppData" in root:
+        print(r"SCANNING SYSTEM...")
+        for root, dirs, files in os.walk(r"/home/"):
+            if "." in root:
                 continue
             try:
                 for fi in files:
                     fileNameSize[join(root, fi)] = getsize(join(root, fi))
             except Exception as e:
                 print (e)
-
-        drives = re.findall(r"[A-Z]+:.*$",os.popen("mountvol /").read(),re.MULTILINE)
-        for drive in drives:
-            if "C" not in drive:
-                 for root, dirs, files in os.walk(drive):
-                     try:
-                         for fi in files:
-                             fileNameSize[join(root, fi)] = getsize(join(root, fi))
-                     except Exception as e:
-                         print (e)
         global scaned
         scaned = 1
     except Exception as e:
@@ -52,7 +42,7 @@ def largestFiles(largeORsmall):
     global scaned
     if scaned == 0:
         scanAll()
-    result = PrettyTable(["Sno","FileName","SystemDrive","FileLocation","FileSize"])
+    result = PrettyTable(["Sno","FileName","FileLocation","FileSize"])
     fileSize = Counter(fileNameSize)
 
     if largeORsmall == 1:
@@ -72,7 +62,7 @@ def largestFiles(largeORsmall):
 
     sno=1
     for k,v in fileList:#fileSize.most_common(num)[:-10:-1]:
-        fileName = k.rsplit("\\",1)
+        fileName = k
         if v < 1024:
             v = str(v) + "B"
         elif v < (1024**2):
@@ -81,19 +71,15 @@ def largestFiles(largeORsmall):
             v = str(format((v/(1024**2)), '.2f')) + "MB"
         elif v < (1024**4):
             v = str(format((v/(1024**3)), '.2f')) + "GB"
-        driveName = fileName[0][0] + " Drive"
-        if "C" in driveName:
-            fileName[0] = '\\'.join(fileName[0].split("\\")[3:])
-        else:
-            fileName[0] = '\\'.join(fileName[0].split("\\")[1:])
-        if len(fileName[1]) > 20:
-            fileName[1] = fileName[1][0:20].rstrip()+ ".."
-        result.add_row([sno,fileName[1],driveName,fileName[0],v])
+
+        fName = fileName.split("/")[-1]
+        fLocation = fileName.split("/")[2:-1]
+        result.add_row([sno,fName,fLocation,v])
         sno = sno+1
     result.align = "r"
     print (result)
     global logHistory
-    with open("desktopCleaner.log", "a") as myfile:
+    with open("fileManager.log", "a") as myfile:
         if largeORsmall == 1:
             myfile.write("\nLARGEST FILES ON SYSTEM\n")
             logHistory.append("\nLARGEST  FILES ON SYSTEM\n")
@@ -115,21 +101,21 @@ def largestFiles(largeORsmall):
 ######################################################################
 def cleanDesktop(fileExtensions):
 
-        clear = lambda: os.system('cls')
-        directory =  os.path.join(os.path.join(os.environ['USERPROFILE']), 'Documents\\Desktop Files')
+        clear = lambda: os.system('clear')
+        directory =  os.path.join(os.path.join(os.environ['HOME']), 'Documents/Desktop Files')
         # print(directory)
         if not os.path.exists(directory):
             os.makedirs(directory)
 
 
         # desktopFiles = defaultdict(list)
-        desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
-        # print (desktop)
+        desktop = os.path.join(os.path.join(os.environ['HOME']), 'Desktop')
+        print (desktop)
         shortcutExt = ["ini","lnk","db"]
         # extensions = []
         global rollback
         rowCount =0
-        result = PrettyTable(["FileName","ActualPath",r"NewPath(Documents\DesktopFiles\)"])
+        result = PrettyTable(["FileName","ActualPath",r"NewPath(Documents/DesktopFiles/)"])
         for root, dirs, files in os.walk(desktop):
             try:
                 for fi in files:
@@ -139,7 +125,7 @@ def cleanDesktop(fileExtensions):
                     else:
                         ext = join(root, fi).split(".")[-1][0:15]
                         print(ext)
-                    locOld = '\\'.join(root.split("\\")[3:])
+                    locOld = '/'.join(root.split("/")[3:])
 
                     #handled shortcut and hidden autosaved files
                     if ext not in shortcutExt and "~$" not in fi[0:3]:
@@ -147,30 +133,31 @@ def cleanDesktop(fileExtensions):
                         newFolder = ""
                         for key in fileExtensions:
                             if ext in fileExtensions[key]:
-                                newFolder =  os.path.join(os.path.join(os.environ['USERPROFILE']), 'Documents\\Desktop Files\\'+key)
+                                newFolder =  os.path.join(os.path.join(os.environ['HOME']), 'Documents/Desktop Files/'+key)
                                 if not os.path.exists(newFolder):
                                     os.makedirs(newFolder)
                                 move(join(root, fi),join(newFolder,fi))
                                 rollback.append([join(newFolder,fi),join(root, fi)])
-                                locNew = '\\'.join(newFolder.split("\\")[5:])
+                                print([join(newFolder,fi),join(root, fi)])
+                                locNew = '/'.join(newFolder.split("/")[5:])
                                 result.add_row([fi,locOld,locNew])
                                 rowCount = rowCount + 1
             except Exception as e:
                 print (e)
         if rowCount == 0:
-            clear()
+            # clear()
             print("\n\t\t\t\tFILE MANAGER\n")
             print("Desktop Already Cleaned\n")
             return 0
         result.align = "r"
         global logHistory
-        with open("desktopCleaner.log", "a") as myfile:
+        with open("fileManager.log", "a") as myfile:
             myfile.write("\nDESKTOP MOVES\n")
             myfile.write(str(result))
             myfile.close()
             logHistory.append("DESKTOP MOVES\n")
             logHistory.append(str(result))
-        clear()
+        # clear()
         print("\n\t\t\t\tFILE MANAGER\n")
         print (result)
 
@@ -180,20 +167,20 @@ def cleanDesktop(fileExtensions):
 
 ######################################################################
 def cleanDownloads(fileExtensions):
-    clear = lambda: os.system('cls')
-    directory =  os.path.join(os.path.join(os.environ['USERPROFILE']), 'Documents\\Desktop Files')
+    clear = lambda: os.system('clear')
+    directory =  os.path.join(os.path.join(os.environ['HOME']), 'Documents/Downloaads Files')
     # print(directory)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
 
     # desktopFiles = defaultdict(list)
-    Downloads = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Downloads')
+    Downloads = os.path.join(os.path.join(os.environ['HOME']), 'Downloads')
     # print (Downloads)
     shortcutExt = ["ini","lnk","db"]
     global rollback
     rowCount =0
-    result = PrettyTable(["FileName","ActualPath",r"NewPath(Documents\DownloadsFile\)"])
+    result = PrettyTable(["FileName","ActualPath",r"NewPath(Documents/DownloadsFile/)"])
     for root, dirs, files in os.walk(Downloads):
         try:
             for fi in files:
@@ -202,7 +189,7 @@ def cleanDownloads(fileExtensions):
                     ext = "noExt"
                 else:
                     ext = join(root, fi).split(".")[-1][0:15]
-                locOld = '\\'.join(root.split("\\")[3:])
+                locOld = '/'.join(root.split("/")[3:])
                 # print (ext)
                 #handled shortcut and hidden autosaved files
                 if ext not in shortcutExt and "~$" not in fi[0:3]:
@@ -210,15 +197,15 @@ def cleanDownloads(fileExtensions):
                     newFolder = ""
                     for key in fileExtensions:
                         if ext in fileExtensions[key]:
-                            newFolder =  os.path.join(os.path.join(os.environ['USERPROFILE']), 'Documents\\Downloads File\\'+key)
+                            newFolder =  os.path.join(os.path.join(os.environ['HOME']), 'Documents/Downloads File/'+key)
                             if not os.path.exists(newFolder):
                                 os.makedirs(newFolder)
-                            move(join(root, fi),join(newFolder,fi))
+                            copyfile(join(root, fi),join(newFolder,fi))
                             rollback.append([join(newFolder,fi),join(root, fi)])
-                            locNew = '\\'.join(newFolder.split("\\")[5:])
+                            locNew = '/'.join(newFolder.split("/")[5:])
                             result.add_row([fi,locOld,locNew])
                             rowCount = rowCount + 1
-                            print(rowCount)
+                            # print(rowCount)
         except Exception as e:
             print (e)
     if rowCount == 0:
@@ -231,7 +218,7 @@ def cleanDownloads(fileExtensions):
     print("\n\t\t\t\tFILE MANAGER\n")
     print (result)
     global logHistory
-    with open("desktopCleaner.log", "a") as myfile:
+    with open("fileManager.log", "a") as myfile:
         myfile.write("\nDOWNLOADS MOVES\n")
         myfile.write(str(result))
         myfile.close()
@@ -243,7 +230,7 @@ def cleanDownloads(fileExtensions):
 
 ######################################################################
 def docOrDeskClean():
-    clear = lambda: os.system('cls')
+    clear = lambda: os.system('clear')
     clear()
     print("\n\t\t\t\tFILE MANAGER\n")
     flagPreviousAction = 0
@@ -270,7 +257,7 @@ def docOrDeskClean():
         fileExtensions["DataFiles"] = ["pdf","csv","ppt","pptx","xlr","xls"]
         fileExtensions["Compressed"] = ["tar","zip","gz","rar","7z"]
         fileExtensions["WebFiles"] = ["asp","css","htm","html","js","jsp","php","xhtml","xml"]
-        fileExtensions["DevelopmentFiles"] = ["c","class","cpp","cs","java","py","sh","vb"]
+        fileExtensions["DevelopmentFiles"] = ["c","class","cpp","cs","java","py","pyc","sh","vb"]
         fileExtensions["Softwares"] = ["exe"]
 
 
@@ -285,12 +272,15 @@ def docOrDeskClean():
             sys.exit()
         elif num ==5 and flagPreviousAction:
             for loc in rollback:
-                move(loc[0],loc[1])
+                try:
+                    move(loc[0],loc[1])
+                except:
+                    continue
             flagPreviousAction = 0
             # print(rollback)
             global logHistory
             logHistory.append("\nROLLED BACK PREVIOUS MOVES")
-            with open("desktopCleaner.log", "a") as myfile:
+            with open("fileManager.log", "a") as myfile:
                 myfile.write("\nROLLED BACK PREVIOUS MOVES\n")
                 myfile.close()
 
@@ -317,18 +307,18 @@ def chunk_reader(fobj, chunk_size=8096):
 
 
 def viewDuplicates(hash=hashlib.sha1):
-    clear = lambda: os.system('cls')
+    clear = lambda: os.system('clear')
     clear()
     print(" ")
     print("\n\t\t\t\tFILE MANAGER\n")
     print("ALERT: TO AVOID LONG RUN ONLY \"Desktop,Downloads,Music and Pictures\" FOLDERS WILL BE CHECKED")
     print(" ")
     paths = []
-    paths.append(os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop'))
-    paths.append(os.path.join(os.path.join(os.environ['USERPROFILE']), 'Downloads'))
+    paths.append(os.path.join(os.path.join(os.environ['HOME']), 'Desktop'))
+    paths.append(os.path.join(os.path.join(os.environ['HOME']), 'Downloads'))
     # paths.append(os.path.join(os.path.join(os.environ['USERPROFILE']), 'Documents'))
-    paths.append(os.path.join(os.path.join(os.environ['USERPROFILE']), 'Music'))
-    paths.append(os.path.join(os.path.join(os.environ['USERPROFILE']), 'Pictures'))
+    paths.append(os.path.join(os.path.join(os.environ['HOME']), 'Music'))
+    paths.append(os.path.join(os.path.join(os.environ['HOME']), 'Pictures'))
     # paths.append(os.path.join(os.path.join(os.environ['USERPROFILE']), 'Videos'))
     hashes = {}
     results = []
@@ -388,13 +378,49 @@ def viewDuplicates(hash=hashlib.sha1):
 
 
 
+def searchFiles():
+    clear()
+    print("\n\t\t\t\tFILE MANAGER\n")
+    searchFile = input("Enter File Name ")
+    print(r"SCANNING SYSTEM...")
+    matches = []
+    for root, dirs, files in os.walk(r"/home/"):
+        if "." in root:
+            continue
+        try:
+            for fi in files:
+                if searchFile.lower() in fi.lower():
+                    matches.append(join(root, fi))
+
+        except Exception as e:
+            print (e)
+    result = PrettyTable(["Sno","FileName","Location"])
+    sno = 1
+    for name in matches:
+        fileName = name.split("/")[-1]
+        fileLocation = '/'.join(name.split("/")[0:-1])
+        result.add_row([sno,fileName,fileLocation])
+        sno+=1
+    if len(matches)==0:
+        print("NO FILE FOUND")
+        return
+    print(result)
+    global logHistory
+    logHistory.append("\nSearch File HISTORY")
+    logHistory.append(str(result))
+    with open("fileManager.log", "a") as myfile:
+        myfile.write("\nSearch File HISTORY\n")
+        myfile.write(str(result))
+        myfile.close()
+
+
 ################################################################################
 
 
 if __name__ == "__main__":
     try:
-        if not os.path.exists('desktopCleaner.log'):
-            open('desktopCleaner.log', 'w').close()
+        if not os.path.exists('fileManager.log'):
+            open('fileManager.log', 'w').close()
         flagInvalid = 0
         flagNumOnly = 0
         flagOffClear = 0
@@ -410,8 +436,9 @@ if __name__ == "__main__":
             print("Press 2. TO VIEW SMALLEST FILES OF SYSTEM")
             print("Press 3. TO CLEAN DESKTOP OR DOWNLOAD FOLDER")
             print("Press 4. TO VIEW AND DELETE DUPLICATE FILES")
-            print("Press 5. TO VIEW ACTION LOG")
-            print("Press 6. TO EXIT")
+            print("Press 5. TO SEARCH FILE IN SYSTEM")
+            print("Press 6. TO VIEW ACTION LOG")
+            print("Press 7. TO EXIT")
             if flagInvalid:
                 print("Invalid Choice Choose Again")
                 flagInvalid = 0
@@ -445,6 +472,11 @@ if __name__ == "__main__":
                 flagOffClear = viewDuplicates()
                 actionLogFlag =1
             elif num==5:
+                searchFiles()
+                flagOffClear = 1
+                flagShowBanner = 1
+                actionLogFlag =1
+            elif num==6:
                 clear()
                 print("\n\t\t\t\tFILE MANAGER\n")
                 print("LOG HISTORY\n")
@@ -454,7 +486,7 @@ if __name__ == "__main__":
                 else:
                     print("NOTHING IN LOG HISTORY")
                 flagOffClear = 1
-            elif num ==6:
+            elif num ==7:
                 clear()
                 sys.exit()
             else:
