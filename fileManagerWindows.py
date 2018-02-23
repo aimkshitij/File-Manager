@@ -218,7 +218,7 @@ def cleanDownloads(fileExtensions):
                             locNew = '\\'.join(newFolder.split("\\")[5:])
                             result.add_row([fi,locOld,locNew])
                             rowCount = rowCount + 1
-                            print(rowCount)
+                            #print(rowCount)
         except Exception as e:
             print (e)
     if rowCount == 0:
