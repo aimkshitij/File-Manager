@@ -3,6 +3,9 @@ NOTE: PYTHON 3 is needed
 
 Working Demo: https://drive.google.com/file/d/1lBxjE61DaaUrYpPoAbifWeXgiYvDwUM7/view
 
+How To Run
+Windows: py -3 fileManagerWindows.py
+Ubuntu: python3 fileManagerUbuntu.py
 
 Features Supported (Description of each feature is given below)
 1. Clean Desktop Folder and Download Folder:
